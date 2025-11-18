@@ -220,7 +220,13 @@ jobs:
           
           # 🔧 手动修复：使用printf避免Here Document问题
           echo "🔧 应用手动变量定义修复..."
+          echo "当前工作目录: $(pwd)"
+          echo "检查 kernel/sucompat.c 文件是否存在..."
+          ls -la kernel/ | grep sucompat || echo "未找到 sucompat.c，列出kernel目录内容:"
+          ls -la kernel/
+
           if [ -f "kernel/sucompat.c" ]; then
+              echo "✅ 找到 kernel/supat.c 文件，开始创建修复补丁..."
               # 创建修复补丁 - 使用printf避免语法错误
               printf '%s\n' \
                   "--- a/kernel/sucompat.c" \
@@ -238,12 +244,15 @@ jobs:
                   " #include <linux/susfs_def.h>" \
                   " #endif" \
                   > manual_fix.patch
-    
+
+              echo "✅ 补丁文件创建完成，应用补丁..."
               # 应用补丁
-              patch -p1 --forward < manual_fix.patch || echo "⚠️ 手动修复补丁应用失败，继续编译..."
+              patch -p1 --forward < manual_fix.patch && echo "✅ 手动修复补丁应用成功!" || echo "⚠️ 手动修复补丁应用失败，继续编译..."
               rm -f manual_fix.patch
           else
-              echo "❌ 找不到 kernel/sucompat.c 文件"
+              echo "❌ 关键提示: 在当前路径下找不到 kernel/sucompat.c 文件"
+              echo "尝试在上级目录寻找..."
+              find .. -name "sucompat.c" | head -5
           fi
           
           echo "🔧 应用补丁..."
