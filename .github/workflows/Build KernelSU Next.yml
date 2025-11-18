@@ -210,12 +210,40 @@ jobs:
           fi
           cp ../susfs4ksu/kernel_patches/fs/* ./common/fs/
           cp ../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
+          
           # Apply patches
           cd ./KernelSU-Next
           patch -p1 --forward < fix_kernel_compat.c.patch || true
           patch -p1 --forward < fix_core_hook.c.patch || true
           patch -p1 --forward < fix_sucompat.c.patch || true
           patch -p1 --forward < fix_apk_sign.c.patch || true
+          
+          # 🔧 手动修复：添加缺失的变量定义
+          echo "🔧 手动修复 sucompat.c 中的未定义变量..."
+          if [ -f "kernel/sucompat.c" ]; then
+            # 创建修复补丁
+            cat > manual_fix.patch << 'EOF'
+--- a/kernel/sucompat.c
++++ b/kernel/sucompat.c
+@@ -18,10 +18,16 @@
+ #include "allowlist.h"
+ #include "arch.h"
+ #include "klog.h" // IWYU pragma: keep
+ #include "ksud.h"
+ #include "kernel_compat.h"
++
++// 手动修复：添加缺失的全局变量定义
++const char sh_path[] = "/system/bin/sh";
++const char ksud_path[] = KSUD_PATH;
++const char su[] = SU_PATH;
++
+ #ifdef CONFIG_KSU_SUSFS_SUS_SU
+ #include <linux/susfs_def.h>
+ #endif
+EOF
+            patch -p1 --forward < manual_fix.patch || true
+          fi
+          
           echo "🔧 应用补丁..."
           cd ../common
           if [ "${{ github.event.inputs.KERNEL_VERSION }}" == "6.1" ]; then
